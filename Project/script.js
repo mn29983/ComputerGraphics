@@ -1,145 +1,167 @@
-// Import Three.js
 import * as THREE from 'three';
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 
-// Scene setup
+// Scene, Camera, Renderer
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
 const renderer = new THREE.WebGLRenderer();
 renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setClearColor(0x202020); // Set background color
 document.body.appendChild(renderer.domElement);
 
-// Camera controls
-const controls = new OrbitControls(camera, renderer.domElement);
-camera.position.set(15, 15, 15);
-controls.update();
+// Add a blue sphere
+const sphereGeometry = new THREE.SphereGeometry(5, 32, 32);
+const sphereMaterial = new THREE.MeshBasicMaterial({ color: 0x0077ff });
+const sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
+scene.add(sphere);
 
-// Big cube
-const bigCubeSize = 10;
-const bigCubeGeometry = new THREE.BoxGeometry(bigCubeSize, bigCubeSize, bigCubeSize);
-const bigCubeMaterial = new THREE.MeshBasicMaterial({ color: 0x888888, wireframe: true });
-const bigCube = new THREE.Mesh(bigCubeGeometry, bigCubeMaterial);
-scene.add(bigCube);
-
-// Smaller cube (Inside Cube)
-const insideCubeGeometry = new THREE.BoxGeometry(1, 1, 1); // Smaller height
-const insideCubeMaterial = new THREE.MeshBasicMaterial({ color: 0x279474 });
-const insideCube = new THREE.Mesh(insideCubeGeometry, insideCubeMaterial);
-insideCube.position.y = bigCubeSize / 2 - 2.5; // Position at the top edge of the Big Cube
-scene.add(insideCube);
-
-// Ball
-const ballRadius = 0.5;
-const ballGeometry = new THREE.SphereGeometry(ballRadius, 32, 32);
+// Add a red ball
+const ballGeometry = new THREE.SphereGeometry(0.2, 16, 16);
 const ballMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
 const ball = new THREE.Mesh(ballGeometry, ballMaterial);
-ball.position.set(0, bigCubeSize / 2 - ballRadius, 0); // Start at the top
+ball.position.set(0, 5, 0); // Position on the sphere
 scene.add(ball);
 
-// Spiral path creation
-const spiralRadius = 4; // The radius of the spiral
-const spiralHeight = 8; // The height of the spiral (adjusted for your requirement)
-const turns = 3; // Number of full turns the spiral will make
+// Physics Variables
+const gravity = 1;  // Increased gravity
+const ballVelocity = new THREE.Vector3();
+const ballBoundingSphere = new THREE.Sphere(ball.position, ball.geometry.parameters.radius);
+const speedMultiplier = 5; // Increase this for faster movement
 
-const spiralPoints = [];
-for (let i = 0; i <= turns * 100; i++) {
-    const angle = (i / 100) * Math.PI * 2 * turns;
-    const x = spiralRadius * Math.cos(angle);
-    const z = spiralRadius * Math.sin(angle);
-    const y = (i / 100) * spiralHeight + bigCubeSize / 2 - 1.5; // Starting at the top edge of the smaller cube
-    spiralPoints.push(new THREE.Vector3(x, y, z));
+// Apply velocity to the ball's position with speed multiplier
+ball.position.add(ballVelocity.multiplyScalar(speedMultiplier));
+
+// Walls and Collision Boxes
+const wallBoundingBoxes = [];
+const wallMaterial = new THREE.MeshBasicMaterial({ color: 0x333333 });
+for (let i = 0; i < 20; i++) {
+  const wallGeometry = new THREE.BoxGeometry(2, 0.2, 0.5);
+  const wall = new THREE.Mesh(wallGeometry, wallMaterial);
+
+  // Position walls randomly on the sphere
+  const phi = Math.random() * Math.PI * 2;
+  const theta = Math.random() * Math.PI;
+  const radius = 5.1; // Slightly outside the sphere's surface
+  wall.position.set(
+    radius * Math.sin(theta) * Math.cos(phi),
+    radius * Math.sin(theta) * Math.sin(phi),
+    radius * Math.cos(theta)
+  );
+
+  // Align walls to the sphere's surface
+  wall.lookAt(0, 0, 0);
+  sphere.add(wall);
+
+  // Create a bounding box for the wall and store it
+  const box = new THREE.Box3().setFromObject(wall);
+  wallBoundingBoxes.push({ wall, box });
 }
 
-// Create spiral path visualization
-const spiralGeometry = new THREE.BufferGeometry().setFromPoints(spiralPoints);
-const spiralMaterial = new THREE.LineBasicMaterial({ color: 0x00ff00 });
-const spiralPath = new THREE.Line(spiralGeometry, spiralMaterial);
-scene.add(spiralPath);
+// Apply damping to velocity
+const dampingFactor = 0.99; // Damping factor to slow down the velocity slightly every frame
 
-// Gravity and ball movement along the spiral
-let velocityY = 0;
-const gravity = -0.01;
-let ballProgress = 0; // The progress along the spiral path (0 to 1)
-let isFalling = true; // Ball starts falling
-
-function updateBall() {
-    if (isFalling && ball.position.y > bigCubeSize / 2 - ballRadius) {
-        // Ball is stuck at the top, start moving it down
-        velocityY += gravity;
-        ball.position.y += velocityY;
+function updateBallPhysics() {
+    // Calculate gravity direction based on the camera’s position
+    const cameraDirection = new THREE.Vector3();
+    camera.getWorldDirection(cameraDirection);
+  
+    // Gravity pulls opposite to the camera's view (toward the bottom of the screen)
+    const gravityDirection = cameraDirection.negate(); // Inverse direction of camera's forward vector
+  
+    // Apply gravity force to the ball
+    ballVelocity.add(gravityDirection.multiplyScalar(gravity));
+  
+    // Apply damping to velocity (friction effect)
+    ballVelocity.multiplyScalar(dampingFactor);
+  
+    // Check for collisions with the walls
+    for (let i = 0; i < wallBoundingBoxes.length; i++) {
+      const wall = wallBoundingBoxes[i];
+      if (ballBoundingSphere.intersectsBox(wall.box)) {
+        // Wall normal points away from the center of the sphere
+        const wallNormal = new THREE.Vector3().subVectors(wall.wall.position, ball.position).normalize();
+  
+        // Tangent direction along the wall
+        const wallTangent = new THREE.Vector3();
+        wallTangent.crossVectors(wallNormal, ball.position.clone().normalize()).normalize();
+  
+        // Project ball's velocity onto the wall's tangent
+        const tangentVelocity = wallTangent.multiplyScalar(ballVelocity.dot(wallTangent));
+        ballVelocity.copy(tangentVelocity); // Update ball's velocity to only move along the wall
+  
+        // Ensure ball remains at the correct radius
+        ball.position.setLength(5); // Constrain to the sphere's surface
+      }
     }
-
-    if (ballProgress < 1 && ball.position.y <= bigCubeSize / 2 - 1.5) {
-        // Once the ball reaches the top edge of the smaller cube, it starts spiraling
-        const pathPoint = spiralPoints[Math.floor(ballProgress * spiralPoints.length)];
-        ball.position.set(pathPoint.x, pathPoint.y, pathPoint.z);
-        ballProgress += 0.01; // Move along the spiral
+  
+    // Apply velocity to the ball's position
+    ball.position.add(ballVelocity);
+  
+    // Keep ball constrained to the sphere's surface
+    const distanceFromCenter = ball.position.length();
+    if (distanceFromCenter > 5) {
+      ball.position.setLength(5); // Constrain to the sphere's surface
     }
+  }
+  
+  // Update Ball Bounding Sphere Position
+  function updateBallBoundingSphere() {
+    ballBoundingSphere.center.copy(ball.position);
+  }
 
-    // When the ball reaches the end of the spiral, it starts falling
-    if (ballProgress >= 1) {
-        velocityY += gravity;
-        ball.position.y += velocityY;
 
-        // Check collisions with Big Cube boundaries
-        if (ball.position.y - ballRadius < -bigCubeSize / 2) {
-            ball.position.y = -bigCubeSize / 2 + ballRadius;
-            velocityY = 0; // Stop the ball at the bottom
-        }
-    }
-}
+// Add a light
+const ambientLight = new THREE.AmbientLight(0xffffff, 1);
+scene.add(ambientLight);
 
-// Interactive cubes (smaller cubes inside the big cube)
-const smallerCubes = [];
-const smallCubeSize = 1;
+const pointLight = new THREE.PointLight(0xffffff, 1);
+pointLight.position.set(10, 10, 10);
+scene.add(pointLight);
 
-for (let i = 0; i < 10; i++) {
-    const smallCubeGeometry = new THREE.BoxGeometry(smallCubeSize, smallCubeSize, smallCubeSize);
-    const smallCubeMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
-    const smallCube = new THREE.Mesh(smallCubeGeometry, smallCubeMaterial);
+// Camera Position
+camera.position.set(0, 0, 12);
+camera.lookAt(0, 0, 0);
 
-    // Random position inside the Big Cube
-    smallCube.position.set(
-        (Math.random() - 0.5) * bigCubeSize,
-        (Math.random() - 0.5) * bigCubeSize,
-        (Math.random() - 0.5) * bigCubeSize
-    );
-
-    scene.add(smallCube);
-    smallerCubes.push(smallCube);
-}
-
-// Interaction logic
-function onCubeClick(event) {
-    // Convert mouse click to 3D space
-    const raycaster = new THREE.Raycaster();
-    const mouse = new THREE.Vector2(
-        (event.clientX / window.innerWidth) * 2 - 1,
-        -(event.clientY / window.innerHeight) * 2 + 1
-    );
-
-    raycaster.setFromCamera(mouse, camera);
-    const intersects = raycaster.intersectObjects(smallerCubes);
-
-    if (intersects.length > 0) {
-        // Example interaction: Change color on click
-        intersects[0].object.material.color.set(0xff00ff);
-    }
-}
-
-window.addEventListener('click', onCubeClick, false);
-
-// Animation loop
+// Animation Loop
 function animate() {
-    requestAnimationFrame(animate);
+  requestAnimationFrame(animate);
 
-    // Update controls
-    controls.update();
+  // Update ball physics
+  updateBallPhysics();
+  updateBallBoundingSphere(); // Update the ball's bounding sphere position
 
-    // Update ball position
-    updateBall();
-
-    // Render scene
-    renderer.render(scene, camera);
+  renderer.render(scene, camera);
 }
+
 animate();
+
+// Mouse Interaction (for rotating the camera)
+let isDragging = false;
+let previousMousePosition = { x: 0, y: 0 };
+
+function onMouseDown() {
+  isDragging = true;
+}
+
+function onMouseMove(event) {
+  if (!isDragging) return;
+
+  const deltaMove = { x: event.movementX, y: event.movementY };
+
+  const rotationSpeed = 0.005;
+  const spherical = new THREE.Spherical().setFromVector3(camera.position);
+
+  spherical.theta -= deltaMove.x * rotationSpeed;
+  spherical.phi -= deltaMove.y * rotationSpeed;
+  spherical.phi = Math.max(0.1, Math.min(Math.PI - 0.1, spherical.phi)); // Clamp vertical rotation
+
+  camera.position.setFromSpherical(spherical);
+  camera.lookAt(0, 0, 0);
+}
+
+function onMouseUp() {
+  isDragging = false;
+}
+
+document.addEventListener('mousedown', onMouseDown);
+document.addEventListener('mousemove', onMouseMove);
+document.addEventListener('mouseup', onMouseUp);
