@@ -1,137 +1,197 @@
-import * as THREE from 'three';
-import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import * as THREE from "three";
+import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 
-// Scene, Camera, Renderer
-const scene = new THREE.Scene();
-scene.fog = new THREE.Fog(0x000000, 10, 25);
+// Core Elements
+let scene, camera, renderer, clock, mixer, player;
+let walls = [], endpoint, gameStarted = false, gameOver = false;
+const moveSpeed = 2;
+const keys = { w: false, s: false, a: false, d: false, c: false };
 
-const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
-const renderer = new THREE.WebGLRenderer();
-renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.setClearColor(0x000000);
-document.body.appendChild(renderer.domElement);
+// UI Elements
+const startScreen = document.getElementById("start-screen");
+const gameUI = document.getElementById("game-ui");
+const endScreen = document.getElementById("end-screen");
+const timerText = document.getElementById("timer");
+const endMessage = document.getElementById("end-message");
+let timer = 0, timerInterval;
 
-// Sphere (Game Area)
-const sphereGeometry = new THREE.SphereGeometry(15, 64, 64);
-const sphereMaterial = new THREE.MeshStandardMaterial({ color: 0x0077ff });
-const sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
-scene.add(sphere);
+// Initialize Scene
+function init() {
+  scene = new THREE.Scene();
+  camera = new THREE.PerspectiveCamera(90, window.innerWidth / window.innerHeight, 0.1, 1000);
+  camera.position.set(0, 5, -10);
+  renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  document.body.appendChild(renderer.domElement);
 
-// Player Robot Model
-const loader = new GLTFLoader();
-let player;
-loader.load(
-  'models/RobotExpressive.glb',
-  (gltf) => {
-    player = gltf.scene;
-    player.scale.set(0.1, 0.1, 0.1); // Scale the robot down
-    player.position.set(0, 15, 0); // Place on the sphere
-    scene.add(player);
-  },
-  undefined,
-  (error) => {
-    console.error('Error loading model:', error);
-  }
-);
+  // Lights
+  const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+  scene.add(ambientLight);
+  const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+  directionalLight.position.set(0, 10, 10);
+  scene.add(directionalLight);
 
-// Walls (optional obstacles)
-const walls = [];
-const wallMaterial = new THREE.MeshStandardMaterial({ color: 0x333333 });
-for (let i = 0; i < 30; i++) {
-  const wallGeometry = new THREE.BoxGeometry(1, 1.5, 0.5);
-  const wall = new THREE.Mesh(wallGeometry, wallMaterial);
-
-  const phi = Math.random() * Math.PI * 2;
-  const theta = Math.random() * Math.PI;
-  const radius = 15.2;
-
-  wall.position.set(
-    radius * Math.sin(theta) * Math.cos(phi),
-    radius * Math.sin(theta) * Math.sin(phi),
-    radius * Math.cos(theta)
+  // Ground
+  const ground = new THREE.Mesh(
+    new THREE.PlaneGeometry(200, 200),
+    new THREE.MeshStandardMaterial({ color: 0x808080 })
   );
-  wall.lookAt(0, 0, 0);
-  sphere.add(wall);
-  walls.push(wall); // Optional: Keep track of walls for collision detection
+  ground.rotation.x = -Math.PI / 2;
+  scene.add(ground);
+
+  // Load Player Model
+  const loader = new GLTFLoader();
+  loader.load("models/RobotExpressive.glb", (gltf) => {
+    player = gltf.scene;
+    mixer = new THREE.AnimationMixer(player);
+    scene.add(player);
+    player.position.y = 0.5;
+
+    setupAnimations(gltf.animations);
+  });
+
+  // Walls and Endpoint
+  createWalls();
+  createEndpoint();
+
+  // Clock
+  clock = new THREE.Clock();
+
+  // Event Listeners
+  window.addEventListener("resize", onWindowResize);
+  document.addEventListener("keydown", (e) => (keys[e.key.toLowerCase()] = true));
+  document.addEventListener("keyup", (e) => (keys[e.key.toLowerCase()] = false));
+
+  // Start Game Button
+  document.getElementById("start-button").addEventListener("click", startGame);
+  document.getElementById("restart-button").addEventListener("click", restartGame);
+
+  animate();
 }
 
-// Endpoint
-const endGeometry = new THREE.CylinderGeometry(1, 1, 2, 32);
-const endMaterial = new THREE.MeshStandardMaterial({ color: 0xff0000, emissive: 0xff0000 });
-const endPoint = new THREE.Mesh(endGeometry, endMaterial);
-endPoint.position.set(0, -15.2, 0);
-scene.add(endPoint);
+// Setup Animations
+let actions = {};
+function setupAnimations(animations) {
+  animations.forEach((clip) => {
+    actions[clip.name] = mixer.clipAction(clip);
+  });
+  setActiveAnimation("Idle");
+}
 
-// Lighting
-const ambientLight = new THREE.AmbientLight(0x404040, 0.5);
-scene.add(ambientLight);
+function setActiveAnimation(name) {
+  Object.keys(actions).forEach((key) => actions[key].stop());
+  actions[name].reset().play();
+}
 
-const spotlight = new THREE.SpotLight(0xffffff, 1, 20, Math.PI / 10, 0.2);
-scene.add(spotlight);
+// Create Walls
+function createWalls() {
+  const wallMaterial = new THREE.MeshStandardMaterial({ color: 0xff0000 });
+  for (let i = 0; i < 10; i++) {
+    const wall = new THREE.Mesh(new THREE.BoxGeometry(2, 2, 2), wallMaterial);
+    wall.position.set(Math.random() * 50 - 25, 1, Math.random() * 50 - 25);
+    walls.push(wall);
+    scene.add(wall);
+  }
+}
 
-// Player Movement Parameters
-let playerDirection = new THREE.Vector3(); // Direction for movement
-const moveSpeed = 0.1; // Movement speed
+// Create Endpoint
+function createEndpoint() {
+  const material = new THREE.MeshStandardMaterial({ color: 0x00ff00 });
+  endpoint = new THREE.Mesh(new THREE.CylinderGeometry(1, 1, 2, 32), material);
+  endpoint.position.set(20, 1, 20);
+  scene.add(endpoint);
+}
 
-// Keyboard Input
-const keys = { w: false, a: false, s: false, d: false, ArrowUp: false, ArrowLeft: false, ArrowDown: false, ArrowRight: false };
+// Start Game
+function startGame() {
+  startScreen.classList.add("hidden");
+  gameUI.classList.remove("hidden");
+  gameStarted = true;
+  timer = 0;
+  timerInterval = setInterval(() => {
+    timer++;
+    timerText.textContent = `Time: ${timer}s`;
+  }, 1000);
+}
 
-document.addEventListener('keydown', (event) => {
-  keys[event.key] = true;
-});
+// Restart Game
+function restartGame() {
+  window.location.reload();
+}
 
-document.addEventListener('keyup', (event) => {
-  keys[event.key] = false;
-});
+// Handle Player Movement
+const velocity = new THREE.Vector3();
+function movePlayer(delta) {
+  if (!player || !gameStarted) return;
 
-// Player Movement
-function movePlayerWithKeys() {
-  if (!player) return;
+  velocity.set(0, 0, 0);
+  const direction = new THREE.Vector3();
 
-  const movement = new THREE.Vector3();
+  if (keys.w) direction.z = 1;
+  if (keys.s) direction.z = -1;
+  if (keys.a) direction.x = 1;
+  if (keys.d) direction.x = -1;
 
-  // Calculate movement direction
-  if (keys.w || keys.ArrowUp) movement.z -= 1;
-  if (keys.s || keys.ArrowDown) movement.z += 1;
-  if (keys.a || keys.ArrowLeft) movement.x -= 1;
-  if (keys.d || keys.ArrowRight) movement.x += 1;
+  if (keys.c) setActiveAnimation("Jump");
 
-  // Apply movement
-  if (movement.length() > 0) {
-    movement.normalize().multiplyScalar(moveSpeed);
-    playerDirection.add(movement);
+  direction.normalize().multiplyScalar(moveSpeed * delta);
+  velocity.add(direction);
+
+  player.position.add(velocity);
+  player.lookAt(player.position.clone().add(direction));
+
+  if (direction.length() > 0) setActiveAnimation("Walking");
+  else setActiveAnimation("Idle");
+}
+
+// Check Collisions
+function checkCollisions() {
+  if (walls.some((wall) => wall.position.distanceTo(player.position) < 1.5)) {
+    endGame(false);
   }
 
-  // Keep the player on the sphere surface
-  const newPosition = player.position.clone().add(playerDirection);
-  newPosition.normalize().multiplyScalar(15); // Constrain to sphere surface
-  player.position.copy(newPosition);
-
-  // Orient player to face the camera
-  player.lookAt(camera.position);
+  if (endpoint.position.distanceTo(player.position) < 1.5) {
+    endGame(true);
+  }
 }
 
-// Camera and Spotlight
-function updateCameraPosition() {
-  if (!player) return;
+// End Game
+function endGame(won) {
+  gameOver = true;
+  gameStarted = false;
+  clearInterval(timerInterval);
+  gameUI.classList.add("hidden");
+  endScreen.classList.remove("hidden");
+  endMessage.textContent = won ? "You Won!" : "You Lost!";
+}
 
-  const offset = new THREE.Vector3(0, 10, 10); // Offset for top-down view
-  camera.position.copy(player.position.clone().add(offset));
-  camera.lookAt(player.position);
-
-  // Spotlight follows the camera
-  spotlight.position.copy(camera.position);
-  spotlight.target = player;
+// Handle Window Resize
+function onWindowResize() {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
 }
 
 // Animation Loop
 function animate() {
   requestAnimationFrame(animate);
 
-  movePlayerWithKeys(); // Handle player movement
-  updateCameraPosition(); // Update camera and spotlight
+  const delta = clock.getDelta();
+
+  if (gameStarted && !gameOver) {
+    movePlayer(delta);
+    checkCollisions();
+  }
+
+  if (mixer) mixer.update(delta);
+
+  camera.position.lerp(
+    player.position.clone().add(new THREE.Vector3(0, 8, -10)),
+    0.1
+  );
+  camera.lookAt(player.position);
+
   renderer.render(scene, camera);
 }
 
-// Start Animation Loop
-animate();
+init();
