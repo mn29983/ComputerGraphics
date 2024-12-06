@@ -3,25 +3,25 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>3D Game</title>
-  <link rel="stylesheet" href="main.css">
+  <title>Three.js Game</title>
+  <link rel="stylesheet" href="styles.css">
 </head>
 <body>
   <div id="start-screen" class="overlay">
-    <h1>3D Game</h1>
-    <p>Move with W/A/S/D or Arrow Keys.<br>Spacebar to jump.<br>Reach the endpoint to win!</p>
-    <button id="start-button">Start Game</button>
+    <h1>Three.js Game</h1>
+    <p>Press SPACE or click the button to start the game!</p>
+    <button id="start-button">Start</button>
   </div>
 
-  <div id="game-ui" class="hidden">
-    <h2 id="timer">Time: 0s</h2>
+  <div id="game-ui" class="hidden timer">
+    <p id="timer">Time: 0s</p>
   </div>
 
   <div id="end-screen" class="overlay hidden">
     <h1 id="end-message"></h1>
-    <button id="restart-button">Restart Game</button>
+    <button id="restart-button">Restart</button>
   </div>
 
-  <script src="script.js" type="module"></script>
+  <script type="module" src="/js/main.js"></script>
 </body>
 </html>
