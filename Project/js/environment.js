@@ -63,4 +63,6 @@ export function initEnvironment(scene, objects) {
   endpoint.name = "Endpoint"; // Unique identifier
   scene.add(endpoint);
   objects.push(endpoint);
+
+  
 }

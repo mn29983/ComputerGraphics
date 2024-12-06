@@ -29,6 +29,27 @@ function init() {
   // Environment setup
   initEnvironment(scene, objects);
 
+  // Load Maze Model
+  const mazeLoader = new GLTFLoader();
+  mazeLoader.load("models/Maze.glb", (gltf) => {
+    const maze = gltf.scene;
+    maze.position.set(0, 3, 0); // Adjust position if necessary
+    maze.scale.set(100, 50, 100); // Scale the maze 10 times bigger
+
+    scene.add(maze);
+
+    // Add walls from maze to objects for collision
+    maze.traverse((child) => {
+      if (child.isMesh) {
+        child.castShadow = true;
+        child.receiveShadow = true;
+        objects.push(child); // Add each mesh in the maze to the objects array
+      }
+    });
+
+    console.log("Maze loaded:", maze);
+  });
+
   // Player setup
   const loader = new GLTFLoader();
   loader.load("models/RobotExpressive.glb", (gltf) => {
@@ -63,6 +84,7 @@ function init() {
 
   animate();
 }
+
 
 function initUI() {
   document.getElementById("start-button").addEventListener("click", () => {
