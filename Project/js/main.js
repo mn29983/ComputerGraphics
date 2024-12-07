@@ -34,7 +34,7 @@ function init() {
   mazeLoader.load("models/Maze.glb", (gltf) => {
     const maze = gltf.scene;
     maze.position.set(0, 3, 0); // Adjust position if necessary
-    maze.scale.set(100, 50, 100); // Scale the maze 10 times bigger
+    maze.scale.set(1, 1, 1); // Scale the maze 10 times bigger
 
     scene.add(maze);
 
@@ -55,7 +55,7 @@ function init() {
   loader.load("models/RobotExpressive.glb", (gltf) => {
     console.log("Model loaded:", gltf);
     player = gltf.scene;
-    player.position.set(0, 0, 0);
+    player.position.set(20, 2.1, 10);
     scene.add(player);
 
     mixer = new THREE.AnimationMixer(player);
@@ -64,13 +64,14 @@ function init() {
     // Default animation
     actions["Idle"].play();
 
-    // Spotlight
-    spotlight = new THREE.SpotLight(0xffffff, 1);
-    spotlight.position.set(0, 10, 0); // Initial position
-    spotlight.angle = Math.PI / 6;
-    spotlight.penumbra = 0.5;
-    spotlight.target = player; // Spotlight focuses on the player
-    scene.add(spotlight);
+  // Spotlight
+  spotlight = new THREE.SpotLight(0xffffff, 1, 50, Math.PI / 4, 0.5);
+  spotlight.position.set(0, 20, 0); // Positioned above the player
+  spotlight.angle = Math.PI / 6; // Narrower focus
+  spotlight.penumbra = 0.1; // Softer edges
+  spotlight.target = player; // Always focused on the player
+  scene.add(spotlight);
+
   });
 
   // UI setup
@@ -136,16 +137,33 @@ function animate() {
 
   if (gameStarted && !gameOver && player) {
     const velocity = new THREE.Vector3();
-    if (keys.w) velocity.z = moveSpeed * delta;
-    if (keys.s) velocity.z = -moveSpeed * delta;
-    if (keys.a) velocity.x = moveSpeed * delta;
-    if (keys.d) velocity.x = -moveSpeed * delta;
+    if (keys.w) velocity.z = -moveSpeed * delta;
+    if (keys.s) velocity.z = moveSpeed * delta;
+    if (keys.a) velocity.x = -moveSpeed * delta;
+    if (keys.d) velocity.x = moveSpeed * delta;
 
     if (keys.shift) velocity.multiplyScalar(runMultiplier);
 
     if (velocity.length() > 0) {
-      player.position.add(velocity);
-      player.lookAt(player.position.clone().add(velocity));
+      const nextPosition = player.position.clone().add(velocity);
+
+      // Check for collisions
+      const playerBox = new THREE.Box3().setFromObject(player);
+      playerBox.translate(velocity); // Simulate the player's new position
+      let canMove = true;
+
+      for (const object of objects) {
+        const objectBox = new THREE.Box3().setFromObject(object);
+        if (playerBox.intersectsBox(objectBox)) {
+          canMove = false;
+          break;
+        }
+      }
+
+      if (canMove) {
+        player.position.copy(nextPosition);
+        player.lookAt(player.position.clone().add(velocity));
+      }
 
       // Handle animations
       if (keys.shift && actions["Running"]) {
@@ -174,8 +192,6 @@ function animate() {
     );
     spotlight.target.updateMatrixWorld();
 
-
-
     // Update camera position to follow the player 
     const cameraOffset = new THREE.Vector3(0, 9, -9); // Adjust this for desired angle
     const targetPosition = player.position.clone().add(cameraOffset);
@@ -188,6 +204,7 @@ function animate() {
 
   renderer.render(scene, camera);
 }
+
 
 
 
