@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
-import { initEnvironment } from "./environment.js";
+import { initEnvironment } from './environment.js';
 import { setupAnimations } from "./animations.js";
 import { setupControls } from "./controls.js";
 
@@ -14,21 +14,36 @@ let freeCameraEnabled = false;
 let freeCamera, freeCameraControls;
 let playerBox, playerHelper; // Player collider and helper
 let playerMesh;
+let cameraPivot;
 
 function init() {
   // Core elements
   scene = new THREE.Scene();
+
+  // Add Fog to the Scene
+  const fogColor = 0x111111; // Dark fog color
+  scene.fog = new THREE.Fog(fogColor, 10, 50); // Linear Fog: near=10, far=50
+  scene.background = new THREE.Color(fogColor); // Match background color to fog
+
   camera = new THREE.PerspectiveCamera(
     95,
     window.innerWidth / window.innerHeight,
     0.1,
     1000
   );
-  camera.position.set(0, 10, -10);
+
   renderer = new THREE.WebGLRenderer({ antialias: true });
   renderer.setSize(window.innerWidth, window.innerHeight);
   document.body.appendChild(renderer.domElement);
 
+
+    // Pivot for the camera
+    cameraPivot = new THREE.Object3D();
+    scene.add(cameraPivot);
+
+      // Attach the main camera to the pivot
+  cameraPivot.add(camera);
+  camera.position.set(0, 9, -9); // Set initial offset (behind and above the player)
   clock = new THREE.Clock();
 
   // Free camera
@@ -45,30 +60,11 @@ function init() {
   // Environment setup
   initEnvironment(scene, objects);
 
-  // Load Maze Model
-  const mazeLoader = new GLTFLoader();
-  mazeLoader.load("models/Maze.glb", (gltf) => {
-    const maze = gltf.scene;
-    maze.position.set(0, 3, 0);
-    maze.scale.set(1, 1, 1);
-    scene.add(maze);
-
-    // Add walls to collision objects
-    maze.traverse((child) => {
-      if (child.isMesh) {
-        child.castShadow = true;
-        child.receiveShadow = true;
-        objects.push(child);
-      }
-    });
-    console.log("Maze loaded:", maze);
-  });
-
   // Load Player Model
   const loader = new GLTFLoader();
   loader.load("models/RobotExpressive.glb", (gltf) => {
     player = gltf.scene;
-    player.position.set(10, 0.1, -90);
+    player.position.set(200, 0.1, 0);
     scene.add(player);
   
     // Find the main mesh and compute the initial bounding box
@@ -94,14 +90,22 @@ function init() {
     mixer = new THREE.AnimationMixer(player);
     setupAnimations(gltf.animations, mixer, actions);
     actions["Idle"].play();
-  
-    // Spotlight setup
-    spotlight = new THREE.SpotLight(0xffffff, 1, 50, Math.PI / 4, 0.5);
-    spotlight.position.set(0, 20, 0);
-    spotlight.target = player;
-    scene.add(spotlight);
   });
   
+  // Spotlight to follow the player
+  spotlight = new THREE.SpotLight(0xffffff, 2, 100, Math.PI / 6, 0.5, 1); // Increased intensity to 2
+  spotlight.position.set(0, 25, 0); // Initial position above the player
+  spotlight.castShadow = true;
+  
+  // Spotlight target setup
+  spotlight.target = new THREE.Object3D();
+  scene.add(spotlight.target);
+  
+  scene.add(spotlight);
+
+  // Spotlight helper for debugging (optional)
+  const spotlightHelper = new THREE.SpotLightHelper(spotlight);
+  scene.add(spotlightHelper);
 
   // UI setup
   initUI();
@@ -152,8 +156,8 @@ function updatePlayerCollider() {
     );
 
     // Scale the bounding box if it doesn't fully encapsulate the model
-    const sizeBuffer = new THREE.Vector3(0.5, 0.5, 0.5); // Adjust these values as needed
-    playerBox.expandByVector(sizeBuffer);
+    const sizeBuffer = new THREE.Vector3(0.3, 0.3, 0.3); // Adjust these values for more flexibility
+    playerBox.expandByVector(sizeBuffer);  // Make the bounding box slightly larger
 
     // Update the helper to match the updated bounding box
     playerHelper.box.copy(playerBox);
@@ -185,6 +189,7 @@ function checkCollisions() {
     }
   }
 }
+
 
 
 function animate() {
@@ -258,17 +263,14 @@ function animate() {
         actions["Idle"]?.play();
       }
 
-      spotlight.position.set(
-        player.position.x,
-        player.position.y + 10,
-        player.position.z
-      );
-      spotlight.target.position.set(
-        player.position.x,
-        player.position.y,
-        player.position.z
-      );
-      spotlight.target.updateMatrixWorld();
+ // Spotlight follows player from above
+ spotlight.position.set(
+  player.position.x,
+  player.position.y + 25, // Maintain light above the player
+  player.position.z
+);
+spotlight.target.position.copy(player.position);
+spotlight.target.updateMatrixWorld();
     }
 
     mixer?.update(delta);
