@@ -10,7 +10,7 @@ export function initEnvironment(scene, objects) {
   scene.add(directionalLight);
 
   // Fog
-  scene.fog = new THREE.FogExp2(0x000000, 0.02); // Exponential fog
+ // scene.fog = new THREE.FogExp2(0x000000, 0.02); // Exponential fog
 
   // Ground
   const ground = new THREE.Mesh(
@@ -21,7 +21,6 @@ export function initEnvironment(scene, objects) {
   scene.add(ground);
 
   // Maze Walls
-// Function to create a wall
 // Function to create a wall
 function createWall(width, height, depth, position, rotation) {
   const wallMaterial = new THREE.MeshStandardMaterial({ color: 0xff0000 });
@@ -45,10 +44,19 @@ function createWall(width, height, depth, position, rotation) {
 
 
   // Create multiple walls
-  createWall(20, 6, 2, { x: 5, y: 3, z: 0 }, { x: 0, y: 0, z: 0 });  // Wall 1, rotated 45 degrees around Y-axis
-  createWall(20, 6, 2, { x: -10, y: 3, z: 0 }, { x: 0, y: 0, z: 0 }); // Wall 2, rotated 90 degrees around Y-axis
-  createWall(20, 6, 2, { x: 0, y: 3, z: -10 }, { x: 0, y: 0, z: 0 });  // Wall 3, rotated 45 degrees around X-axis
-  createWall(20, 6, 2, { x: 0, y: 3, z: 10 }, { x: 0, y: Math.PI / 2, z: 0 });   // Wall 4, rotated 30 degrees around Y-axis
+  // Border walls
+  createWall(200, 6, 3, { x: 0, y: 3, z: -100}, { x: 0, y: 0, z: 0 });
+  createWall(200, 6, 3, { x: -100, y: 3, z: 0}, { x: 0, y: Math.PI / 2, z: 0 });
+  createWall(200, 6, 3, { x: 0, y: 3, z: 100}, { x: 0, y: 0, z: 0 });
+  createWall(200, 6, 3, { x: 100, y: 3, z: 0}, { x: 0, y: Math.PI / 2, z: 0 });
+
+  // Maze Walls
+  createWall(20, 6, 3, { x: 20, y: 3, z: -90 }, { x: 0, y: Math.PI / 2, z: 0 });
+  createWall(20, 6, 3, { x: 0, y: 3, z: -90 }, { x: 0, y: Math.PI / 2, z: 0 });
+  //createWall(20, 6, 3, { x: -10, y: 3, z: 0 }, { x: 0, y: 0, z: 0 });
+  //createWall(20, 6, 3, { x: 0, y: 3, z: -10 }, { x: 0, y: 0, z: 0 });
+  //createWall(20, 6, 3, { x: 0, y: 3, z: 10 }, { x: 0, y: Math.PI / 2, z: 0 });   // Wall rotated 90 degrees
+
 
 
   // Trap Example

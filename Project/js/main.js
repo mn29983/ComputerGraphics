@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { initEnvironment } from "./environment.js";
 import { setupAnimations } from "./animations.js";
 import { setupControls } from "./controls.js";
@@ -9,6 +10,10 @@ let keys = { w: false, a: false, s: false, d: false, shift: false };
 let gameStarted = false, gameOver = false, timer = 0, timerInterval;
 const moveSpeed = 5, runMultiplier = 2;
 const objects = [];
+let freeCameraEnabled = false;
+let freeCamera, freeCameraControls;
+let playerBox, playerHelper; // Player collider and helper
+let playerMesh;
 
 function init() {
   // Core elements
@@ -26,6 +31,17 @@ function init() {
 
   clock = new THREE.Clock();
 
+  // Free camera
+  freeCamera = new THREE.PerspectiveCamera(
+    95,
+    window.innerWidth / window.innerHeight,
+    0.1,
+    1000
+  );
+  freeCamera.position.set(0, 20, 20);
+  freeCameraControls = new OrbitControls(freeCamera, renderer.domElement);
+  freeCameraControls.enabled = false;
+
   // Environment setup
   initEnvironment(scene, objects);
 
@@ -33,46 +49,59 @@ function init() {
   const mazeLoader = new GLTFLoader();
   mazeLoader.load("models/Maze.glb", (gltf) => {
     const maze = gltf.scene;
-    maze.position.set(0, 3, 0); // Adjust position if necessary
-    maze.scale.set(1, 1, 1); // Scale the maze 10 times bigger
-
+    maze.position.set(0, 3, 0);
+    maze.scale.set(1, 1, 1);
     scene.add(maze);
 
-    // Add walls from maze to objects for collision
+    // Add walls to collision objects
     maze.traverse((child) => {
       if (child.isMesh) {
         child.castShadow = true;
         child.receiveShadow = true;
-        objects.push(child); // Add each mesh in the maze to the objects array
+        objects.push(child);
       }
     });
-
     console.log("Maze loaded:", maze);
   });
 
-  // Player setup
+  // Load Player Model
   const loader = new GLTFLoader();
   loader.load("models/RobotExpressive.glb", (gltf) => {
-    console.log("Model loaded:", gltf);
     player = gltf.scene;
-    player.position.set(20, 2.1, 10);
+    player.position.set(10, 0.1, -90);
     scene.add(player);
-
+  
+    // Find the main mesh and compute the initial bounding box
+    player.traverse((child) => {
+      if (child.isMesh) {
+        playerMesh = child; // Assume this is the main mesh
+        playerMesh.geometry.computeBoundingBox(); // Compute the geometry's bounding box
+      }
+    });
+  
+    if (playerMesh) {
+      const box = playerMesh.geometry.boundingBox.clone(); // Local bounding box
+      playerBox = new THREE.Box3(
+        box.min.clone().applyMatrix4(playerMesh.matrixWorld), // Transform to world space
+        box.max.clone().applyMatrix4(playerMesh.matrixWorld)
+      );
+  
+      // Create a helper to visualize the bounding box
+      playerHelper = new THREE.Box3Helper(playerBox, 0x00ff00); // Green debug box
+      scene.add(playerHelper);
+    }
+  
     mixer = new THREE.AnimationMixer(player);
     setupAnimations(gltf.animations, mixer, actions);
-
-    // Default animation
     actions["Idle"].play();
-
-  // Spotlight
-  spotlight = new THREE.SpotLight(0xffffff, 1, 50, Math.PI / 4, 0.5);
-  spotlight.position.set(0, 20, 0); // Positioned above the player
-  spotlight.angle = Math.PI / 6; // Narrower focus
-  spotlight.penumbra = 0.1; // Softer edges
-  spotlight.target = player; // Always focused on the player
-  scene.add(spotlight);
-
+  
+    // Spotlight setup
+    spotlight = new THREE.SpotLight(0xffffff, 1, 50, Math.PI / 4, 0.5);
+    spotlight.position.set(0, 20, 0);
+    spotlight.target = player;
+    scene.add(spotlight);
   });
+  
 
   // UI setup
   initUI();
@@ -83,9 +112,12 @@ function init() {
   // Window resize handling
   window.addEventListener("resize", onWindowResize);
 
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "c") toggleFreeCamera();
+  });
+
   animate();
 }
-
 
 function initUI() {
   document.getElementById("start-button").addEventListener("click", () => {
@@ -103,24 +135,47 @@ function initUI() {
   });
 }
 
+function toggleFreeCamera() {
+  freeCameraEnabled = !freeCameraEnabled;
+  freeCameraControls.enabled = freeCameraEnabled;
+}
+
+function updatePlayerCollider() {
+  if (playerMesh) {
+    // Get the player's bounding box from its geometry
+    const boundingBox = playerMesh.geometry.boundingBox.clone();
+    
+    // Apply world transformations
+    playerBox.set(
+      boundingBox.min.clone().applyMatrix4(playerMesh.matrixWorld),
+      boundingBox.max.clone().applyMatrix4(playerMesh.matrixWorld)
+    );
+
+    // Scale the bounding box if it doesn't fully encapsulate the model
+    const sizeBuffer = new THREE.Vector3(0.5, 0.5, 0.5); // Adjust these values as needed
+    playerBox.expandByVector(sizeBuffer);
+
+    // Update the helper to match the updated bounding box
+    playerHelper.box.copy(playerBox);
+  }
+}
+
+
+
 function checkCollisions() {
   if (!player) return;
-
-  const playerBox = new THREE.Box3().setFromObject(player);
 
   for (const object of objects) {
     const objectBox = new THREE.Box3().setFromObject(object);
 
     if (playerBox.intersectsBox(objectBox)) {
       if (object.name === "Endpoint") {
-        // Win condition
         gameOver = true;
         clearInterval(timerInterval);
         document.getElementById("end-message").textContent = "You Win!";
         document.getElementById("end-screen").classList.remove("hidden");
         return;
       } else if (object.name === "Trap") {
-        // Trap condition
         gameOver = true;
         clearInterval(timerInterval);
         document.getElementById("end-message").textContent = "You Died!";
@@ -131,86 +186,104 @@ function checkCollisions() {
   }
 }
 
+
 function animate() {
   requestAnimationFrame(animate);
   const delta = clock.getDelta();
+  
+  if (freeCameraEnabled) {
+    freeCameraControls.update();
+    renderer.render(scene, freeCamera);
+  } else {
+    if (gameStarted && !gameOver && player) {
+      updatePlayerCollider();
 
-  if (gameStarted && !gameOver && player) {
-    const velocity = new THREE.Vector3();
-    if (keys.w) velocity.z = -moveSpeed * delta;
-    if (keys.s) velocity.z = moveSpeed * delta;
-    if (keys.a) velocity.x = -moveSpeed * delta;
-    if (keys.d) velocity.x = moveSpeed * delta;
+      // Camera follow logic
+      const cameraOffset = new THREE.Vector3(0, 9, -9);
+      const targetPosition = player.position.clone().add(cameraOffset);
+      camera.position.lerp(targetPosition, 0.1);
+      camera.lookAt(player.position);
 
-    if (keys.shift) velocity.multiplyScalar(runMultiplier);
+      // Player movement logic
+      const velocity = new THREE.Vector3();
+      if (keys.w) velocity.z = moveSpeed * delta;
+      if (keys.s) velocity.z = -moveSpeed * delta;
+      if (keys.a) velocity.x = moveSpeed * delta;
+      if (keys.d) velocity.x = -moveSpeed * delta;
+      if (keys.shift) velocity.multiplyScalar(runMultiplier);
 
-    if (velocity.length() > 0) {
-      const nextPosition = player.position.clone().add(velocity);
-
-      // Check for collisions
-      const playerBox = new THREE.Box3().setFromObject(player);
-      playerBox.translate(velocity); // Simulate the player's new position
-      let canMove = true;
-
-      for (const object of objects) {
-        const objectBox = new THREE.Box3().setFromObject(object);
-        if (playerBox.intersectsBox(objectBox)) {
-          canMove = false;
-          break;
+      if (velocity.length() > 0) {
+        const nextPosition = player.position.clone().add(velocity);
+        
+        // Create a temporary collider to simulate the player's next position
+        const nextBox = playerBox.clone().translate(velocity);
+  
+        // Shrink the collider slightly to prevent getting stuck
+        const shrinkVector = new THREE.Vector3(0.1, 0.1, 0.1); // Adjust as needed
+        nextBox.expandByVector(shrinkVector.negate());
+  
+        // Check for collisions
+        let canMove = true;
+        for (const object of objects) {
+          const objectBox = new THREE.Box3().setFromObject(object);
+          if (nextBox.intersectsBox(objectBox)) {
+            canMove = false;
+            break;
+          }
         }
+  
+        // Move the player if there's no collision
+        if (canMove) {
+          player.position.copy(nextPosition);
+          player.lookAt(player.position.clone().add(velocity));
+        }
+      
+
+        if (canMove) {
+          player.position.copy(nextPosition);
+          player.lookAt(player.position.clone().add(velocity));
+        }
+
+        // Animations
+        if (keys.shift && actions["Running"]) {
+          actions["Walking"]?.stop();
+          actions["Running"]?.play();
+        } else if (actions["Walking"]) {
+          actions["Running"]?.stop();
+          actions["Walking"]?.play();
+        }
+      } else {
+        actions["Walking"]?.stop();
+        actions["Running"]?.stop();
+        actions["Idle"]?.play();
       }
 
-      if (canMove) {
-        player.position.copy(nextPosition);
-        player.lookAt(player.position.clone().add(velocity));
-      }
-
-      // Handle animations
-      if (keys.shift && actions["Running"]) {
-        if (actions["Walking"] && actions["Walking"].isRunning()) actions["Walking"].stop();
-        if (!actions["Running"].isRunning()) actions["Running"].play();
-      } else if (actions["Walking"]) {
-        if (actions["Running"] && actions["Running"].isRunning()) actions["Running"].stop();
-        if (!actions["Walking"].isRunning()) actions["Walking"].play();
-      }
-    } else {
-      if (actions["Walking"] && actions["Walking"].isRunning()) actions["Walking"].stop();
-      if (actions["Running"] && actions["Running"].isRunning()) actions["Running"].stop();
-      if (actions["Idle"] && !actions["Idle"].isRunning()) actions["Idle"].play();
+      spotlight.position.set(
+        player.position.x,
+        player.position.y + 10,
+        player.position.z
+      );
+      spotlight.target.position.set(
+        player.position.x,
+        player.position.y,
+        player.position.z
+      );
+      spotlight.target.updateMatrixWorld();
     }
 
-    spotlight.position.set(
-      player.position.x,
-      player.position.y + 10,
-      player.position.z
-    );
-
-    spotlight.target.position.set(
-      player.position.x,
-      player.position.y,
-      player.position.z
-    );
-    spotlight.target.updateMatrixWorld();
-
-    // Update camera position to follow the player 
-    const cameraOffset = new THREE.Vector3(0, 9, -9); // Adjust this for desired angle
-    const targetPosition = player.position.clone().add(cameraOffset);
-    camera.position.lerp(targetPosition, 0.1); // Smooth follow
-    camera.lookAt(player.position);
-
-    mixer.update(delta);
+    mixer?.update(delta);
     checkCollisions();
+    renderer.render(scene, camera);
   }
-
-  renderer.render(scene, camera);
 }
-
-
-
 
 function onWindowResize() {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
+
+  freeCamera.aspect = window.innerWidth / window.innerHeight;
+  freeCamera.updateProjectionMatrix();
+
   renderer.setSize(window.innerWidth, window.innerHeight);
 }
 
