@@ -2,8 +2,8 @@ import * as THREE from 'three';
 
 export function initEnvironment(scene, objects) {
 
-  //  const ambientLight = new THREE.AmbientLight(0xffffff, 0.3); // Softer ambient light
-   // scene.add(ambientLight);
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.3); // Softer ambient light
+    scene.add(ambientLight);
 
 
   
