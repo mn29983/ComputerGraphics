@@ -1,10 +1,12 @@
 import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
 export function initEnvironment(scene, objects) {
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.5); // Enhanced ambient light
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+    const loader = new GLTFLoader();
     scene.add(ambientLight);
 
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
     directionalLight.position.set(10, 20, 10);
     scene.add(directionalLight);
 
@@ -79,16 +81,45 @@ export function initEnvironment(scene, objects) {
         return validPositions.splice(index, 1)[0];
     }
 
-    const numTraps = 5;
-    for (let i = 0; i < numTraps; i++) {
-        const trapPos = getRandomValidPosition();
-        const trap = new THREE.Mesh(new THREE.BoxGeometry(2, 2, 2), new THREE.MeshStandardMaterial({ color: 0xff0000 }));
-        trap.position.set(trapPos.x, 1, trapPos.z);
-        trap.name = "Trap";
-        scene.add(trap);
-        objects.push(trap);
+    // Function to Load Trap Model
+    function loadTrapModel(position) {
+        loader.load('models/trap.glb', (gltf) => {
+            const trap = gltf.scene;
+            trap.position.set(position.x, 0.1, position.z);
+            trap.scale.set(1.5, 1.5, 1.5);
+            trap.name = "Trap";
+            scene.add(trap);
+            objects.push(trap);
+        });
     }
 
+    // Place Traps
+    const numTraps = 20;
+    for (let i = 0; i < numTraps; i++) {
+        const trapPos = getRandomValidPosition();
+        loadTrapModel(trapPos);
+    }
+
+    // Function to Load Coin Model
+    function loadCoinModel(position) {
+        loader.load('models/coin.glb', (gltf) => {
+            const coin = gltf.scene;
+            coin.position.set(position.x, 1, position.z); // Adjust height
+            coin.scale.set(2, 2, 2); // Scale to fit
+            coin.name = "Coin";
+            scene.add(coin);
+            objects.push(coin);
+        });
+    }
+
+    // Place Coins
+    const numCoins = 10;
+    for (let i = 0; i < numCoins; i++) {
+        const coinPos = getRandomValidPosition();
+        loadCoinModel(coinPos);
+    }
+
+    // Endpoint Setup
     const endpointPos = getRandomValidPosition();
     const endpointMaterial = new THREE.MeshStandardMaterial({
         color: 0x00ff00,
@@ -105,6 +136,7 @@ export function initEnvironment(scene, objects) {
     scene.add(endpoint);
     objects.push(endpoint);
 
+    // Ground Setup
     const groundTexture = textureLoader.load('models/Grass.jpg');
     groundTexture.wrapS = THREE.RepeatWrapping;
     groundTexture.wrapT = THREE.RepeatWrapping;
@@ -130,7 +162,7 @@ export function initEnvironment(scene, objects) {
         backgroundMusic.play();
     });
 
-    // Mini-map setup (Placeholder, actual minimap to be handled in UI)
+    // Mini-map setup (Placeholder)
     const miniMapCamera = new THREE.OrthographicCamera(-50, 50, 50, -50, 1, 1000);
     miniMapCamera.position.set(100, 100, 100);
     miniMapCamera.lookAt(new THREE.Vector3(100, 0, 100));

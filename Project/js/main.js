@@ -93,7 +93,7 @@ function init() {
   });
   
   // Spotlight to follow the player
-  spotlight = new THREE.SpotLight(0xffffff, 2, 100, Math.PI / 6, 0.5, 1); // Increased intensity to 2
+  spotlight = new THREE.SpotLight(0xffffff, 2, 30, 60, 1, 10); // Increased intensity to 2
   spotlight.position.set(0, 25, 0); // Initial position above the player
   spotlight.castShadow = true;
   
@@ -165,6 +165,12 @@ function updatePlayerCollider() {
 }
 
 
+let score = 0; // Initialize score
+
+function updateScore() {
+  score++;
+  document.getElementById("score").textContent = `Score: ${score}`;
+}
 
 function checkCollisions() {
   if (!player) return;
@@ -185,11 +191,14 @@ function checkCollisions() {
         document.getElementById("end-message").textContent = "You Died!";
         document.getElementById("end-screen").classList.remove("hidden");
         return;
+      } else if (object.name === "Coin") {
+        scene.remove(object); // Remove coin from the scene
+        objects.splice(objects.indexOf(object), 1); // Remove from collision objects
+        updateScore(); // Increase score
       }
     }
   }
 }
-
 
 
 function animate() {
