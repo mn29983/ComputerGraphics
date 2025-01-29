@@ -191,6 +191,70 @@ for (let i = 0; i < numCoins; i++) {
         backgroundMusic.play();
     });
 
+
+    // Global array to store building colliders
+const colliders = [];
+
+
+    function loadModel(path, position, rotation, scale) {
+      loader.load(path, (gltf) => {
+          const model = gltf.scene;
+          
+          // Set position
+          model.position.set(position.x, position.y, position.z);
+          
+          // Set rotation (in radians)
+          model.rotation.set(rotation.x, rotation.y, rotation.z);
+    
+          // Set scale
+          model.scale.set(scale.x, scale.y, scale.z);
+      
+          scene.add(model);
+
+                  // Create a bounding box collider
+        const box = new THREE.Box3().setFromObject(model);
+        model.userData.collider = box; // Store collider in userData
+        colliders.push(box); // Store collider in array
+      });
+    }
+    
+    
+    const defaultScale = { x: 10, y: 10, z: 10 };
+
+    const buildingConfigs = [
+      { xStart: -20, zStart: 0, step: 25, count: 9, rotation: Math.PI / 2, axis: 'z' },  // Left row (moves along Z)
+      { xStart: 0, zStart: -20, step: 25, count: 9, rotation: 0, axis: 'x' },  // Bottom row (moves along X)
+      { xStart: 220, zStart: 0, step: 25, count: 9, rotation: -Math.PI / 2, axis: 'z' },  // Right row (moves along Z)
+      { xStart: 0, zStart: 220, step: 25, count: 9, rotation: Math.PI, axis: 'x' }   // Top row (moves along X)
+  ];
+
+    // Available models to alternate between
+    const buildingModels = [
+        'models/building1.glb',
+        'models/building2.glb',
+        'models/building3.glb'
+    ];
+    
+// Function to generate and load buildings dynamically
+function generateBuildings(config) {
+  for (let i = 0; i < config.count; i++) {
+      const modelPath = buildingModels[i % buildingModels.length]; // Cycle through models
+      const position = config.axis === 'x'
+          ? { x: config.xStart + (config.step * i), y: 0, z: config.zStart }  // Move along X-axis
+          : { x: config.xStart, y: 0, z: config.zStart + (config.step * i) }; // Move along Z-axis
+
+      const rotation = { x: 0, y: config.rotation, z: 0 };
+
+      loadModel(modelPath, position, rotation, defaultScale);
+  }
+}
+
+    
+    // Generate all buildings dynamically
+    buildingConfigs.forEach(generateBuildings);
+    
+
+
   //   Mini-map setup (Placeholder)
     const miniMapCamera = new THREE.OrthographicCamera(-50, 50, 50, -50, 1, 1000);
     miniMapCamera.position.set(100, 100, 100);

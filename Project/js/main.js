@@ -106,6 +106,8 @@ function init() {
   const spotlightHelper = new THREE.SpotLightHelper(spotlight);
   scene.add(spotlightHelper);
 
+
+  
   // UI setup
   initUI();
 
