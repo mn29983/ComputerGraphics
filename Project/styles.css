@@ -49,3 +49,29 @@ button {
 button:hover {
   background-color: #0056b3;
 }
+
+#mini-map {
+  position: absolute;
+  top: 50px;
+  right: 1700px;
+  width: 150px;
+  height: 150px;
+  background: rgba(0, 0, 0, 0.5);
+  border: 2px solid white;
+  border-radius: 50%;
+  overflow: hidden;
+}
+
+#game-ui {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: rgba(0, 0, 0, 0.8);
+  padding: 10px;
+  color: white;
+  border-radius: 5px;
+}
+
+#score {
+  margin-top: 5px;
+}
