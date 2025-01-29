@@ -2,11 +2,11 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
 export function initEnvironment(scene, objects) {
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0);
     const loader = new GLTFLoader();
     scene.add(ambientLight);
 
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 0);
     directionalLight.position.set(10, 20, 10);
     scene.add(directionalLight);
 
@@ -81,58 +81,58 @@ export function initEnvironment(scene, objects) {
         return validPositions.splice(index, 1)[0];
     }
 
-    // Function to Load Trap Model
+  //  Function to Load Trap Model
     function loadTrapModel(position) {
         loader.load('models/trap.glb', (gltf) => {
             const trap = gltf.scene;
             trap.position.set(position.x, 0.1, position.z);
-            trap.scale.set(1.5, 1.5, 1.5);
+            trap.scale.set(1, 2, 1);
             trap.name = "Trap";
             scene.add(trap);
             objects.push(trap);
         });
     }
 
-    // Place Traps
+  //   Place Traps
     const numTraps = 20;
     for (let i = 0; i < numTraps; i++) {
         const trapPos = getRandomValidPosition();
         loadTrapModel(trapPos);
     }
 
-// Function to Load Coin Model
-function loadCoinModel(position) {
-  loader.load('models/coin.glb', (gltf) => {
-      const coin = gltf.scene;
-      coin.position.set(position.x, 1, position.z); // Adjust height
-      coin.scale.set(2, 2, 2); // Scale to fit
-      coin.name = "Coin";
-      
-      // Set the rotation speed for the coin
-      coin.rotationSpeed = Math.random() * 0.05 + 0.01; // Random rotation speed
-      
-      scene.add(coin);
-      objects.push(coin); // Add to the objects array for easy iteration
-  });
+  // Function to Load Coin Model
+    function loadCoinModel(position) {
+      loader.load('models/coin.glb', (gltf) => {
+        const coin = gltf.scene;
+        coin.position.set(position.x, 1, position.z); // Adjust height
+        coin.scale.set(2, 2, 2); // Scale to fit
+        coin.name = "Coin";
+        
+  // Set the rotation speed for the coin
+        coin.rotationSpeed = Math.random() * 0.05 + 0.01; // Random rotation speed
+        
+        scene.add(coin);
+        objects.push(coin); // Add to the objects array for easy iteration
+    });
 }
 
-// Place Coins
+  // Place Coins
 const numCoins = 10;
 for (let i = 0; i < numCoins; i++) {
   const coinPos = getRandomValidPosition();
   loadCoinModel(coinPos);
 }
 
-    // Endpoint Setup
+  //   Endpoint Setup
     const endpointPos = getRandomValidPosition();
 
-    // Load the gate model
+  //   Load the gate model
     loader.load('models/gate.glb', (gltf) => {
       const gate = gltf.scene;
-     //  gate.position.set(endpointPos.x, 0, endpointPos.z); // Set position of the gate
-    gate.position.set(220, 0, 0); // Set position of the gate
-     gate.scale.set(0.01  , 0.008, 0.01); // Adjust the scale if necessary
-     gate.name = "Endpoint";
+      gate.position.set(endpointPos.x, 0, endpointPos.z); // Set position of the gate
+  //  gate.position.set(220, 0, 0); // Set position of the gate
+      gate.scale.set(0.01  , 0.008, 0.01); // Adjust the scale if necessary
+      gate.name = "Endpoint";
       scene.add(gate);
       objects.push(gate);
 
@@ -145,27 +145,27 @@ for (let i = 0; i < numCoins; i++) {
 
       const triangle = new THREE.Mesh(new THREE.ConeGeometry(3, 2.2, 2), endpointMaterial); // Cone with 3 sides (triangle base)
       triangle.rotation.set(0, Math.PI / 2, 0);
-     //  triangle.position.set(endpointPos.x, 4, endpointPos.z); // Set position of the gate
-      triangle.position.set(220, 4, 0);
+      triangle.position.set(endpointPos.x, 4, endpointPos.z); // Set position of the gate
+  //  triangle.position.set(220, 4, 0);
       triangle.name = "Endpoint";
       scene.add(triangle);
       objects.push(triangle);
 
       const endpoint = new THREE.Mesh(new THREE.BoxGeometry(5, 4, 0.1), endpointMaterial); // Cube geometry
-      endpoint.position.set(220, 1, 0);
-   //  endpoint.position.set(endpointPos.x, 1, endpointPos.z); // Set position of the gate
+      endpoint.position.set(endpointPos.x, 1, endpointPos.z); // Set position of the gate
+  //  endpoint.position.set(220, 1, 0);
       endpoint.name = "Endpoint";
       scene.add(endpoint);
       objects.push(endpoint);
 
-    // Add a stronger and more noticeable light source
+  //   Add a stronger and more noticeable light source
     const endpointLight = new THREE.PointLight(0x00ff00, 100, 100); // Increased intensity and range
-    // endpointLight.position.set(endpointPos.x, 3, endpointPos.z); // Slightly raise the light's position to make it more noticeable
-    endpointLight.position.set(220, 4, 0); // Slightly raise the light's position to make it more noticeable
+    endpointLight.position.set(endpointPos.x, 3, endpointPos.z); // Slightly raise the light's position to make it more noticeable
+  //endpointLight.position.set(220, 4, 0); // Slightly raise the light's position to make it more noticeable
     scene.add(endpointLight);
     });
 
-    // Ground Setup
+  //   Ground Setup
     const groundTexture = textureLoader.load('models/Grass.jpg');
     groundTexture.wrapS = THREE.RepeatWrapping;
     groundTexture.wrapT = THREE.RepeatWrapping;
@@ -179,7 +179,7 @@ for (let i = 0; i < numCoins; i++) {
     scene.add(groundPlane);
     objects.push(groundPlane);
 
-    // Background Music
+  //   Background Music
     const listener = new THREE.AudioListener();
     scene.add(listener);
     const backgroundMusic = new THREE.Audio(listener);
@@ -187,11 +187,11 @@ for (let i = 0; i < numCoins; i++) {
     audioLoader.load('models/music.mp3', function(buffer) {
         backgroundMusic.setBuffer(buffer);
         backgroundMusic.setLoop(true);
-        backgroundMusic.setVolume(0.5);
+        backgroundMusic.setVolume(2);
         backgroundMusic.play();
     });
 
-    // Mini-map setup (Placeholder)
+  //   Mini-map setup (Placeholder)
     const miniMapCamera = new THREE.OrthographicCamera(-50, 50, 50, -50, 1, 1000);
     miniMapCamera.position.set(100, 100, 100);
     miniMapCamera.lookAt(new THREE.Vector3(100, 0, 100));

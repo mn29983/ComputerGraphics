@@ -8,7 +8,7 @@ import { setupControls } from "./controls.js";
 let scene, camera, renderer, clock, mixer, spotlight, player, actions = {};
 let keys = { w: false, a: false, s: false, d: false, shift: false };
 let gameStarted = false, gameOver = false, timer = 0, timerInterval;
-const moveSpeed = 5, runMultiplier = 2;
+const moveSpeed = 6, runMultiplier = 2;
 const objects = [];
 let freeCameraEnabled = false;
 let freeCamera, freeCameraControls;
@@ -43,7 +43,7 @@ function init() {
 
       // Attach the main camera to the pivot
   cameraPivot.add(camera);
-  camera.position.set(0, 9, -9); // Set initial offset (behind and above the player)
+  camera.position.set(0, 9, 10); // Set initial offset (behind and above the player)
   clock = new THREE.Clock();
 
   // Free camera
@@ -83,8 +83,8 @@ function init() {
       );
   
       // Create a helper to visualize the bounding box
-      playerHelper = new THREE.Box3Helper(playerBox, 0x00ff00); // Green debug box
-      scene.add(playerHelper);
+ //      playerHelper = new THREE.Box3Helper(playerBox, 0x00ff00); // Green debug box
+ //      scene.add(playerHelper);
     }
   
     mixer = new THREE.AnimationMixer(player);
@@ -144,24 +144,21 @@ function toggleFreeCamera() {
 }
 
 function updatePlayerCollider() {
-  if (playerMesh) {
-    // Get the player's bounding box from its geometry
-    const boundingBox = playerMesh.geometry.boundingBox.clone();
-    
-    // Apply world transformations
-    playerBox.set(
-      boundingBox.min.clone().applyMatrix4(playerMesh.matrixWorld),
-      boundingBox.max.clone().applyMatrix4(playerMesh.matrixWorld)
-    );
+  if (!player) return;
 
-    // Scale the bounding box if it doesn't fully encapsulate the model
-    const sizeBuffer = new THREE.Vector3(0.3, 0.3, 0.3); // Adjust these values for more flexibility
-    playerBox.expandByVector(sizeBuffer);  // Make the bounding box slightly larger
+  // Update player's bounding box based on world transformation
+  playerBox.setFromObject(player);
 
-    // Update the helper to match the updated bounding box
+  // Expand the bounding box slightly to account for small inaccuracies
+  const sizeBuffer = new THREE.Vector3(0.1, 0.3, 0.1);
+  playerBox.expandByVector(sizeBuffer);
+
+  // Update the helper to reflect the new bounding box
+  if (playerHelper) {
     playerHelper.box.copy(playerBox);
   }
 }
+
 
 
 let score = 0; // Initialize score
@@ -191,9 +188,9 @@ function checkCollisions() {
         document.getElementById("end-screen").classList.remove("hidden");
         return;
       } else if (object.name === "Coin") {
-        scene.remove(object); // Remove coin from the scene
-        objects.splice(objects.indexOf(object), 1); // Remove from collision objects
-        updateScore(); // Increase score
+        scene.remove(object);
+        objects.splice(objects.indexOf(object), 1);
+        updateScore();
       }
     }
   }
@@ -205,7 +202,7 @@ function animate() {
   const delta = clock.getDelta();
   
   checkCollisions();
-  
+
   if (freeCameraEnabled) {
     freeCameraControls.update();
     renderer.render(scene, freeCamera);
@@ -230,8 +227,9 @@ function animate() {
       if (velocity.length() > 0) {
         const nextPosition = player.position.clone().add(velocity);
         
-        // Create a temporary collider to simulate the player's next position
-        const nextBox = playerBox.clone().translate(velocity);
+        const nextBox = new THREE.Box3().setFromObject(player);
+        nextBox.translate(velocity);
+        
   
         // Shrink the collider slightly to prevent getting stuck
         const shrinkVector = new THREE.Vector3(0.1, 0.1, 0.1); // Adjust as needed
