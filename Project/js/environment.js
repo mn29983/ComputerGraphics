@@ -100,41 +100,70 @@ export function initEnvironment(scene, objects) {
         loadTrapModel(trapPos);
     }
 
-    // Function to Load Coin Model
-    function loadCoinModel(position) {
-        loader.load('models/coin.glb', (gltf) => {
-            const coin = gltf.scene;
-            coin.position.set(position.x, 1, position.z); // Adjust height
-            coin.scale.set(2, 2, 2); // Scale to fit
-            coin.name = "Coin";
-            scene.add(coin);
-            objects.push(coin);
-        });
-    }
+// Function to Load Coin Model
+function loadCoinModel(position) {
+  loader.load('models/coin.glb', (gltf) => {
+      const coin = gltf.scene;
+      coin.position.set(position.x, 1, position.z); // Adjust height
+      coin.scale.set(2, 2, 2); // Scale to fit
+      coin.name = "Coin";
+      
+      // Set the rotation speed for the coin
+      coin.rotationSpeed = Math.random() * 0.05 + 0.01; // Random rotation speed
+      
+      scene.add(coin);
+      objects.push(coin); // Add to the objects array for easy iteration
+  });
+}
 
-    // Place Coins
-    const numCoins = 10;
-    for (let i = 0; i < numCoins; i++) {
-        const coinPos = getRandomValidPosition();
-        loadCoinModel(coinPos);
-    }
+// Place Coins
+const numCoins = 10;
+for (let i = 0; i < numCoins; i++) {
+  const coinPos = getRandomValidPosition();
+  loadCoinModel(coinPos);
+}
 
     // Endpoint Setup
     const endpointPos = getRandomValidPosition();
-    const endpointMaterial = new THREE.MeshStandardMaterial({
+
+    // Load the gate model
+    loader.load('models/gate.glb', (gltf) => {
+      const gate = gltf.scene;
+     //  gate.position.set(endpointPos.x, 0, endpointPos.z); // Set position of the gate
+    gate.position.set(220, 0, 0); // Set position of the gate
+     gate.scale.set(0.01  , 0.008, 0.01); // Adjust the scale if necessary
+     gate.name = "Endpoint";
+      scene.add(gate);
+      objects.push(gate);
+
+      // Using a cone to simulate a triangle-like shape (pyramid)
+      const endpointMaterial = new THREE.MeshStandardMaterial({
         color: 0x00ff00,
         emissive: 0x00ff00,
         emissiveIntensity: 1.5,
-    });
-    const endpointLight = new THREE.PointLight(0x00ff00, 3, 20);
-    endpointLight.position.set(endpointPos.x, 5, endpointPos.z);
-    scene.add(endpointLight);
+      });
 
-    const endpoint = new THREE.Mesh(new THREE.CylinderGeometry(1, 1, 2, 32), endpointMaterial);
-    endpoint.position.set(endpointPos.x, 1, endpointPos.z);
-    endpoint.name = "Endpoint";
-    scene.add(endpoint);
-    objects.push(endpoint);
+      const triangle = new THREE.Mesh(new THREE.ConeGeometry(3, 2.2, 2), endpointMaterial); // Cone with 3 sides (triangle base)
+      triangle.rotation.set(0, Math.PI / 2, 0);
+     //  triangle.position.set(endpointPos.x, 4, endpointPos.z); // Set position of the gate
+      triangle.position.set(220, 4, 0);
+      triangle.name = "Endpoint";
+      scene.add(triangle);
+      objects.push(triangle);
+
+      const endpoint = new THREE.Mesh(new THREE.BoxGeometry(5, 4, 0.1), endpointMaterial); // Cube geometry
+      endpoint.position.set(220, 1, 0);
+   //  endpoint.position.set(endpointPos.x, 1, endpointPos.z); // Set position of the gate
+      endpoint.name = "Endpoint";
+      scene.add(endpoint);
+      objects.push(endpoint);
+
+    // Add a stronger and more noticeable light source
+    const endpointLight = new THREE.PointLight(0x00ff00, 100, 100); // Increased intensity and range
+    // endpointLight.position.set(endpointPos.x, 3, endpointPos.z); // Slightly raise the light's position to make it more noticeable
+    endpointLight.position.set(220, 4, 0); // Slightly raise the light's position to make it more noticeable
+    scene.add(endpointLight);
+    });
 
     // Ground Setup
     const groundTexture = textureLoader.load('models/Grass.jpg');

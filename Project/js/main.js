@@ -93,8 +93,7 @@ function init() {
   });
   
   // Spotlight to follow the player
-  spotlight = new THREE.SpotLight(0xffffff, 2, 30, 60, 1, 10); // Increased intensity to 2
-  spotlight.position.set(0, 25, 0); // Initial position above the player
+  spotlight = new THREE.SpotLight(0xffffff, 4, 0, 5, 1, 0);
   spotlight.castShadow = true;
   
   // Spotlight target setup
@@ -205,6 +204,8 @@ function animate() {
   requestAnimationFrame(animate);
   const delta = clock.getDelta();
   
+  checkCollisions();
+  
   if (freeCameraEnabled) {
     freeCameraControls.update();
     renderer.render(scene, freeCamera);
@@ -272,20 +273,27 @@ function animate() {
         actions["Idle"]?.play();
       }
 
- // Spotlight follows player from above
- spotlight.position.set(
-  player.position.x,
-  player.position.y + 25, // Maintain light above the player
-  player.position.z
-);
-spotlight.target.position.copy(player.position);
-spotlight.target.updateMatrixWorld();
-    }
+    // Spotlight follows player from above
+    spotlight.position.set(
+      player.position.x,
+      player.position.y + 5, // Maintain light above the player
+      player.position.z
+    );
+    spotlight.target.position.copy(player.position);
+    spotlight.target.updateMatrixWorld();
+        }
 
-    mixer?.update(delta);
-    checkCollisions();
-    renderer.render(scene, camera);
-  }
+        mixer?.update(delta);
+        renderer.render(scene, camera);
+      }
+
+
+  // Update rotation of each coin
+  objects.forEach((object) => {
+    if (object.name === "Coin") {
+        object.rotation.y += object.rotationSpeed; // Rotate around Y-axis
+    }
+});
 }
 
 function onWindowResize() {
