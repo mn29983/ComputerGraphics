@@ -14,8 +14,9 @@ function init() {
   const renderer = new THREE.WebGLRenderer({ antialias: true });
   renderer.setSize(window.innerWidth, window.innerHeight);
   renderer.setPixelRatio(window.devicePixelRatio);
-  renderer.outputEncoding = THREE.sRGBEncoding;
+  renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.shadowMap.enabled = true;
+
   document.body.appendChild(renderer.domElement);
 
   // --- Texture Loader and Textures ---
@@ -41,7 +42,7 @@ function init() {
     new THREE.MeshStandardMaterial({ map: wallTexture, side: THREE.BackSide }),      // Back wall
     new THREE.MeshStandardMaterial({ map: wallTexture, side: THREE.BackSide })       // Front wall
   ];
-  const roomGeometry = new THREE.BoxGeometry(0, 4, 15);
+  const roomGeometry = new THREE.BoxGeometry(9, 4, 15);
   const classroom = new THREE.Mesh(roomGeometry, roomMaterials);
   classroom.receiveShadow = true;
   scene.add(classroom);
