@@ -50,12 +50,12 @@ function init() {
   // --- Helper Function to Load GLTF Models ---
   /**
    * Loads a GLTF model and applies configuration options.
-   * @param {string} url - The URL of the GLTF model.
-   * @param {Object} options - Options for configuring the model.
-   * @param {THREE.Vector3} [options.scale] - Scale of the model.
-   * @param {THREE.Vector3} [options.position] - Position of the model.
-   * @param {THREE.Vector3} [options.rotation] - Euler rotation (in radians).
-   * @param {function} [options.onLoad] - Callback once the model is loaded.
+   * @param {string} url 
+   * @param {Object} options 
+   * @param {THREE.Vector3} [options.scale]
+   * @param {THREE.Vector3} [options.position] 
+   * @param {THREE.Vector3} [options.rotation] 
+   * @param {function} [options.onLoad]
    */
   function loadModel(url, { 
     scale = new THREE.Vector3(1, 1, 1), 
@@ -137,11 +137,18 @@ function init() {
     position: new THREE.Vector3(-2.5, -2, 7.3)
   });
 
+
+  loadModel('models/Blackboard.glb', {
+    scale: new THREE.Vector3(0.3, 0.3, 0.3),
+    position: new THREE.Vector3(0, -0.5, 7.3),
+    rotation: new THREE.Vector3(0, +Math.PI, 0)
+  });
+
   // --- Function to Add a Window Light ---
   /**
    * Adds a spotlight simulating sunlight coming through a window.
-   * @param {THREE.Vector3} lightPos - The position of the spotlight.
-   * @param {THREE.Vector3} targetPos - The target position the light is pointing to.
+   * @param {THREE.Vector3} lightPos
+   * @param {THREE.Vector3} targetPos
    */
   function addWindowLight(lightPos, targetPos) {
     const spotLight = new THREE.SpotLight(0xfdfbd3, 3, 50, Math.PI / 1, 0.5, 2);
@@ -178,10 +185,8 @@ function init() {
       rotation: new THREE.Vector3(0, -Math.PI / 2, 0),
       position: win.modelPos,
       onLoad: () => {
-        // Modify skybox position to be 1 unit higher in Y
         const skyboxPos = win.modelPos.clone().setX(win.modelPos.x + 0.05).setY(win.modelPos.y + 0.9);
         addSkyboxCube(skyboxPos);
-        // Add window light using the helper function
         addWindowLight(win.lightPos, win.targetPos);
       }
     });
@@ -193,16 +198,9 @@ function init() {
     position: new THREE.Vector3(4, -2, 6.5)
   });
 
-    // --- Bookcase Model ---
-    loadModel('models/bookcase.glb', {
-      scale: new THREE.Vector3(5, 3.5, 3.5),
-      position: new THREE.Vector3(1.5, -2, 6.5)
-    });
-
-
   // --- Function to Add a Flickering Candle Light ---
 function addCandleLight(position) {
-  const candleLight = new THREE.PointLight(0xffa500, 2, 5); // Warm orange light
+  const candleLight = new THREE.PointLight(0xffa500, 2, 5); 
   candleLight.position.copy(position);
   candleLight.castShadow = true;
   candleLight.shadow.mapSize.width = 512;
@@ -212,8 +210,8 @@ function addCandleLight(position) {
 
   // Create a flickering effect
   function flickerLight() {
-    candleLight.intensity = 1.5 + Math.random() * 0.5; // Random intensity between 1.5 and 2
-    candleLight.position.y = position.y + Math.random() * 0.05; // Slight movement
+    candleLight.intensity = 1.5 + Math.random() * 0.5;
+    candleLight.position.y = position.y + Math.random() * 0.05; 
     requestAnimationFrame(flickerLight);
   }
   flickerLight();
@@ -222,36 +220,32 @@ function addCandleLight(position) {
 // --- Load Candle Model ---
 loadModel('models/Candle.glb', {
   scale: new THREE.Vector3(0.5, 0.5, 0.5),
-  position: new THREE.Vector3(-4, -0.8, -4), // Adjust as needed
+  position: new THREE.Vector3(-4, -0.8, -4), 
   onLoad: (candle) => {
-    // Add the flickering light slightly above the candle wick
     addCandleLight(new THREE.Vector3(candle.position.x, candle.position.y + 0.3, candle.position.z));
   }
 });
 
 loadModel('models/Candle.glb', {
   scale: new THREE.Vector3(0.5, 0.5, 0.5),
-  position: new THREE.Vector3(-3, -0.8, -2), // Adjust as needed
+  position: new THREE.Vector3(-3, -0.8, -2),
   onLoad: (candle) => {
-    // Add the flickering light slightly above the candle wick
     addCandleLight(new THREE.Vector3(candle.position.x, candle.position.y + 0.3, candle.position.z));
   }
 });
 
 loadModel('models/Candle.glb', {
   scale: new THREE.Vector3(0.5, 0.5, 0.5),
-  position: new THREE.Vector3(-4, -0.8, -0.5), // Adjust as needed
+  position: new THREE.Vector3(-4, -0.8, -0.5),
   onLoad: (candle) => {
-    // Add the flickering light slightly above the candle wick
     addCandleLight(new THREE.Vector3(candle.position.x, candle.position.y + 0.3, candle.position.z));
   }
 });
 
 loadModel('models/Candle.glb', {
   scale: new THREE.Vector3(0.5, 0.5, 0.5),
-  position: new THREE.Vector3(-3.5, -0.8, 2), // Adjust as needed
+  position: new THREE.Vector3(-3.5, -0.8, 2), 
   onLoad: (candle) => {
-    // Add the flickering light slightly above the candle wick
     addCandleLight(new THREE.Vector3(candle.position.x, candle.position.y + 0.3, candle.position.z));
   }
 });
@@ -260,36 +254,32 @@ loadModel('models/Candle.glb', {
 
 loadModel('models/Candle.glb', {
   scale: new THREE.Vector3(0.5, 0.5, 0.5),
-  position: new THREE.Vector3(0.9, -0.8, -4), // Adjust as needed
+  position: new THREE.Vector3(0.9, -0.8, -4),
   onLoad: (candle) => {
-    // Add the flickering light slightly above the candle wick
     addCandleLight(new THREE.Vector3(candle.position.x, candle.position.y + 0.3, candle.position.z));
   }
 });
 
 loadModel('models/Candle.glb', {
   scale: new THREE.Vector3(0.5, 0.5, 0.5),
-  position: new THREE.Vector3(1.5, -0.8, -2), // Adjust as needed
+  position: new THREE.Vector3(1.5, -0.8, -2), 
   onLoad: (candle) => {
-    // Add the flickering light slightly above the candle wick
     addCandleLight(new THREE.Vector3(candle.position.x, candle.position.y + 0.3, candle.position.z));
   }
 });
 
 loadModel('models/Candle.glb', {
   scale: new THREE.Vector3(0.5, 0.5, 0.5),
-  position: new THREE.Vector3(1, -0.8, -0.5), // Adjust as needed
+  position: new THREE.Vector3(1, -0.8, -0.5),
   onLoad: (candle) => {
-    // Add the flickering light slightly above the candle wick
     addCandleLight(new THREE.Vector3(candle.position.x, candle.position.y + 0.3, candle.position.z));
   }
 });
 
 loadModel('models/Candle.glb', {
   scale: new THREE.Vector3(0.5, 0.5, 0.5),
-  position: new THREE.Vector3(1, -0.8, 2), // Adjust as needed
+  position: new THREE.Vector3(1, -0.8, 2),
   onLoad: (candle) => {
-    // Add the flickering light slightly above the candle wick
     addCandleLight(new THREE.Vector3(candle.position.x, candle.position.y + 0.3, candle.position.z));
   }
 });
