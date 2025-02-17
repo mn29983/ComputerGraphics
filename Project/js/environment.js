@@ -86,7 +86,7 @@ export function initEnvironment(scene, objects) {
         loader.load('models/trap.glb', (gltf) => {
             const trap = gltf.scene;
             trap.position.set(position.x, 0.1, position.z);
-            trap.scale.set(1, 2, 1);
+            trap.scale.set(0.5, 1.5, 0.5);
             trap.name = "Trap";
             scene.add(trap);
             objects.push(trap);
@@ -100,19 +100,18 @@ export function initEnvironment(scene, objects) {
         loadTrapModel(trapPos);
     }
 
-  // Function to Load Coin Model
+  //  Coin Model
     function loadCoinModel(position) {
       loader.load('models/coin.glb', (gltf) => {
         const coin = gltf.scene;
-        coin.position.set(position.x, 1, position.z); // Adjust height
-        coin.scale.set(2, 2, 2); // Scale to fit
+        coin.position.set(position.x, 1, position.z);
+        coin.scale.set(2, 2, 2); 
         coin.name = "Coin";
-        
-  // Set the rotation speed for the coin
-        coin.rotationSpeed = Math.random() * 0.05 + 0.01; // Random rotation speed
-        
+
+        coin.rotationSpeed = Math.random() * 0.05 + 0.01;
+      
         scene.add(coin);
-        objects.push(coin); // Add to the objects array for easy iteration
+        objects.push(coin);
     });
 }
 
@@ -129,39 +128,33 @@ for (let i = 0; i < numCoins; i++) {
   //   Load the gate model
     loader.load('models/gate.glb', (gltf) => {
       const gate = gltf.scene;
-      gate.position.set(endpointPos.x, 0, endpointPos.z); // Set position of the gate
-  //  gate.position.set(220, 0, 0); // Set position of the gate
-      gate.scale.set(0.01  , 0.008, 0.01); // Adjust the scale if necessary
+      gate.position.set(endpointPos.x, 0, endpointPos.z);
+      gate.scale.set(0.01  , 0.008, 0.01); 
       gate.name = "Endpoint";
       scene.add(gate);
       objects.push(gate);
 
-      // Using a cone to simulate a triangle-like shape (pyramid)
       const endpointMaterial = new THREE.MeshStandardMaterial({
         color: 0x00ff00,
         emissive: 0x00ff00,
         emissiveIntensity: 1.5,
       });
 
-      const triangle = new THREE.Mesh(new THREE.ConeGeometry(3, 2.2, 2), endpointMaterial); // Cone with 3 sides (triangle base)
+      const triangle = new THREE.Mesh(new THREE.ConeGeometry(3, 2.2, 2), endpointMaterial);
       triangle.rotation.set(0, Math.PI / 2, 0);
-      triangle.position.set(endpointPos.x, 4, endpointPos.z); // Set position of the gate
-  //  triangle.position.set(220, 4, 0);
+      triangle.position.set(endpointPos.x, 4, endpointPos.z);
       triangle.name = "Endpoint";
       scene.add(triangle);
       objects.push(triangle);
 
-      const endpoint = new THREE.Mesh(new THREE.BoxGeometry(5, 4, 0.1), endpointMaterial); // Cube geometry
-      endpoint.position.set(endpointPos.x, 1, endpointPos.z); // Set position of the gate
-  //  endpoint.position.set(220, 1, 0);
+      const endpoint = new THREE.Mesh(new THREE.BoxGeometry(5, 4, 0.1), endpointMaterial);
+      endpoint.position.set(endpointPos.x, 1, endpointPos.z);
       endpoint.name = "Endpoint";
       scene.add(endpoint);
       objects.push(endpoint);
 
-  //   Add a stronger and more noticeable light source
-    const endpointLight = new THREE.PointLight(0x00ff00, 100, 100); // Increased intensity and range
-    endpointLight.position.set(endpointPos.x, 3, endpointPos.z); // Slightly raise the light's position to make it more noticeable
-  //endpointLight.position.set(220, 4, 0); // Slightly raise the light's position to make it more noticeable
+    const endpointLight = new THREE.PointLight(0x00ff00, 100, 100);
+    endpointLight.position.set(endpointPos.x, 3, endpointPos.z);
     scene.add(endpointLight);
     });
 
@@ -191,8 +184,6 @@ for (let i = 0; i < numCoins; i++) {
         backgroundMusic.play();
     });
 
-
-    // Global array to store building colliders
 const colliders = [];
 
 
@@ -200,21 +191,15 @@ const colliders = [];
       loader.load(path, (gltf) => {
           const model = gltf.scene;
           
-          // Set position
           model.position.set(position.x, position.y, position.z);
-          
-          // Set rotation (in radians)
           model.rotation.set(rotation.x, rotation.y, rotation.z);
-    
-          // Set scale
           model.scale.set(scale.x, scale.y, scale.z);
       
           scene.add(model);
 
-                  // Create a bounding box collider
         const box = new THREE.Box3().setFromObject(model);
-        model.userData.collider = box; // Store collider in userData
-        colliders.push(box); // Store collider in array
+        model.userData.collider = box;
+        colliders.push(box);
       });
     }
     
@@ -222,26 +207,24 @@ const colliders = [];
     const defaultScale = { x: 10, y: 10, z: 10 };
 
     const buildingConfigs = [
-      { xStart: -20, zStart: 0, step: 25, count: 9, rotation: Math.PI / 2, axis: 'z' },  // Left row (moves along Z)
-      { xStart: 0, zStart: -20, step: 25, count: 9, rotation: 0, axis: 'x' },  // Bottom row (moves along X)
-      { xStart: 220, zStart: 0, step: 25, count: 9, rotation: -Math.PI / 2, axis: 'z' },  // Right row (moves along Z)
-      { xStart: 0, zStart: 220, step: 25, count: 9, rotation: Math.PI, axis: 'x' }   // Top row (moves along X)
+      { xStart: -20, zStart: 0, step: 25, count: 9, rotation: Math.PI / 2, axis: 'z' },
+      { xStart: 0, zStart: -20, step: 25, count: 9, rotation: 0, axis: 'x' },
+      { xStart: 220, zStart: 0, step: 25, count: 9, rotation: -Math.PI / 2, axis: 'z' },
+      { xStart: 0, zStart: 220, step: 25, count: 9, rotation: Math.PI, axis: 'x' }
   ];
 
-    // Available models to alternate between
     const buildingModels = [
         'models/building1.glb',
         'models/building2.glb',
         'models/building3.glb'
     ];
     
-// Function to generate and load buildings dynamically
 function generateBuildings(config) {
   for (let i = 0; i < config.count; i++) {
-      const modelPath = buildingModels[i % buildingModels.length]; // Cycle through models
+      const modelPath = buildingModels[i % buildingModels.length];
       const position = config.axis === 'x'
-          ? { x: config.xStart + (config.step * i), y: 0, z: config.zStart }  // Move along X-axis
-          : { x: config.xStart, y: 0, z: config.zStart + (config.step * i) }; // Move along Z-axis
+          ? { x: config.xStart + (config.step * i), y: 0, z: config.zStart }
+          : { x: config.xStart, y: 0, z: config.zStart + (config.step * i) };
 
       const rotation = { x: 0, y: config.rotation, z: 0 };
 
@@ -250,24 +233,19 @@ function generateBuildings(config) {
 }
 
 function addStreetLights(scene, objects, rotation = { x: 0, y: 0, z: 0 }) {
-  // Build candidate positions from open cells (mazeGrid false)
-  // that have an adjacent wall (mazeGrid true)
   const candidatePositions = [];
-  const offsetFraction = 0.3; // 30% of wallSpacing offset
+  const offsetFraction = 0.3;
   for (let row = 1; row < rows - 1; row++) {
     for (let col = 1; col < cols - 1; col++) {
-      if (mazeGrid[row][col] === false) { // open cell
+      if (mazeGrid[row][col] === false) {
         const adjacentDirs = [];
-        // Check each direction (using row as z and col as x)
-        if (mazeGrid[row - 1][col] === true) adjacentDirs.push({ dx: 0, dz: -1 }); // Up
-        if (mazeGrid[row + 1][col] === true) adjacentDirs.push({ dx: 0, dz: 1 });  // Down
-        if (mazeGrid[row][col - 1] === true) adjacentDirs.push({ dx: -1, dz: 0 }); // Left
-        if (mazeGrid[row][col + 1] === true) adjacentDirs.push({ dx: 1, dz: 0 });  // Right
+        if (mazeGrid[row - 1][col] === true) adjacentDirs.push({ dx: 0, dz: -1 });
+        if (mazeGrid[row + 1][col] === true) adjacentDirs.push({ dx: 0, dz: 1 });
+        if (mazeGrid[row][col - 1] === true) adjacentDirs.push({ dx: -1, dz: 0 });
+        if (mazeGrid[row][col + 1] === true) adjacentDirs.push({ dx: 1, dz: 0 });
 
         if (adjacentDirs.length > 0) {
-          // Randomly pick one adjacent wall direction
           const randDir = adjacentDirs[Math.floor(Math.random() * adjacentDirs.length)];
-          // Compute offset (making the streetlight a bit closer to the wall)
           const offset = wallSpacing * offsetFraction;
           const posX = col * wallSpacing + randDir.dx * offset;
           const posZ = row * wallSpacing + randDir.dz * offset;
@@ -278,7 +256,7 @@ function addStreetLights(scene, objects, rotation = { x: 0, y: 0, z: 0 }) {
   }
 
   // Choose a set number of streetlights (if there are enough candidates)
-  const numStreetLights = 15;
+  const numStreetLights = 10;
   const chosenPositions = [];
   const candidatesCopy = [...candidatePositions];
   for (let i = 0; i < numStreetLights && candidatesCopy.length > 0; i++) {
@@ -294,14 +272,6 @@ function addStreetLights(scene, objects, rotation = { x: 0, y: 0, z: 0 }) {
       streetLight.rotation.set(rotation.x, rotation.y, rotation.z);
       streetLight.position.set(pos.x, 0, pos.z);
       streetLight.scale.set(0.01, 0.01, 0.01);
-
-      streetLight.traverse(child => {
-        if (child.isMesh) {
-          child.castShadow = true;
-          child.receiveShadow = true;
-        }
-      });
-
       scene.add(streetLight);
       objects.push(streetLight);
 
