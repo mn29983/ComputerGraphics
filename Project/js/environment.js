@@ -249,15 +249,81 @@ function generateBuildings(config) {
   }
 }
 
-    
-    // Generate all buildings dynamically
+function addStreetLights(scene, objects, rotation = { x: 0, y: 0, z: 0 }) {
+  // Build candidate positions from open cells (mazeGrid false)
+  // that have an adjacent wall (mazeGrid true)
+  const candidatePositions = [];
+  const offsetFraction = 0.3; // 30% of wallSpacing offset
+  for (let row = 1; row < rows - 1; row++) {
+    for (let col = 1; col < cols - 1; col++) {
+      if (mazeGrid[row][col] === false) { // open cell
+        const adjacentDirs = [];
+        // Check each direction (using row as z and col as x)
+        if (mazeGrid[row - 1][col] === true) adjacentDirs.push({ dx: 0, dz: -1 }); // Up
+        if (mazeGrid[row + 1][col] === true) adjacentDirs.push({ dx: 0, dz: 1 });  // Down
+        if (mazeGrid[row][col - 1] === true) adjacentDirs.push({ dx: -1, dz: 0 }); // Left
+        if (mazeGrid[row][col + 1] === true) adjacentDirs.push({ dx: 1, dz: 0 });  // Right
+
+        if (adjacentDirs.length > 0) {
+          // Randomly pick one adjacent wall direction
+          const randDir = adjacentDirs[Math.floor(Math.random() * adjacentDirs.length)];
+          // Compute offset (making the streetlight a bit closer to the wall)
+          const offset = wallSpacing * offsetFraction;
+          const posX = col * wallSpacing + randDir.dx * offset;
+          const posZ = row * wallSpacing + randDir.dz * offset;
+          candidatePositions.push({ x: posX, z: posZ });
+        }
+      }
+    }
+  }
+
+  // Choose a set number of streetlights (if there are enough candidates)
+  const numStreetLights = 15;
+  const chosenPositions = [];
+  const candidatesCopy = [...candidatePositions];
+  for (let i = 0; i < numStreetLights && candidatesCopy.length > 0; i++) {
+    const index = Math.floor(Math.random() * candidatesCopy.length);
+    chosenPositions.push(candidatesCopy.splice(index, 1)[0]);
+  }
+
+  // Now load the streetlight model at each chosen position.
+  const loader = new GLTFLoader();
+  chosenPositions.forEach(pos => {
+    loader.load('models/streetlamp.glb', (gltf) => {
+      const streetLight = gltf.scene;
+      streetLight.rotation.set(rotation.x, rotation.y, rotation.z);
+      streetLight.position.set(pos.x, 0, pos.z);
+      streetLight.scale.set(0.01, 0.01, 0.01);
+
+      streetLight.traverse(child => {
+        if (child.isMesh) {
+          child.castShadow = true;
+          child.receiveShadow = true;
+        }
+      });
+
+      scene.add(streetLight);
+      objects.push(streetLight);
+
+      // Also add a SpotLight to simulate the lamp's light
+      const spotLight = new THREE.SpotLight(0xffee88, 50, 100, Math.PI / 2, 0.5, 2);
+      spotLight.position.set(pos.x, 10, pos.z); // Placed above the streetlight
+      spotLight.castShadow = true;
+
+      const target = new THREE.Object3D();
+      target.position.set(pos.x, 0, pos.z);
+      scene.add(target);
+      spotLight.target = target;
+
+      scene.add(spotLight);
+      objects.push(spotLight);
+    });
+  });
+}
+
+
+addStreetLights(scene, objects);
+
+
     buildingConfigs.forEach(generateBuildings);
-    
-
-
-  //   Mini-map setup (Placeholder)
-    const miniMapCamera = new THREE.OrthographicCamera(-50, 50, 50, -50, 1, 1000);
-    miniMapCamera.position.set(100, 100, 100);
-    miniMapCamera.lookAt(new THREE.Vector3(100, 0, 100));
-    scene.add(miniMapCamera);
 }

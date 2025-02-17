@@ -93,7 +93,7 @@ function init() {
   });
   
   // Spotlight to follow the player
-  spotlight = new THREE.SpotLight(0xffffff, 4, 0, 5, 1, 0);
+  spotlight = new THREE.SpotLight(0xffee88, 4, 0, 5, 1, 0);
   spotlight.castShadow = true;
   
   // Spotlight target setup
@@ -286,7 +286,6 @@ function animate() {
         mixer?.update(delta);
         renderer.render(scene, camera);
       }
-
 
   // Update rotation of each coin
   objects.forEach((object) => {
